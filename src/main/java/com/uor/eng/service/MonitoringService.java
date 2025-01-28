@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class MonitoringService {
   private final DatabaseService databaseService;
   private final ExecutorService executorService;
-  private static final int TIMEOUT = 5000; // 5 seconds timeout
+  private static final int TIMEOUT = 5000;
 
   public MonitoringService(DatabaseService databaseService) {
     this.databaseService = databaseService;
@@ -45,7 +45,7 @@ public class MonitoringService {
           break;
         }
       }
-      monitoredHostIds.remove(host.getId()); // Clean up on thread exit
+      monitoredHostIds.remove(host.getId()); // Host is no longer being monitored
     });
   }
 
