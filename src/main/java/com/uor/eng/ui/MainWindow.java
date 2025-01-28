@@ -92,8 +92,6 @@ public class MainWindow {
 
   private TableView<Log> createLogsTable() {
     TableView<Log> table = new TableView<>();
-
-    // Time column
     TableColumn<Log, LocalDateTime> timeColumn = new TableColumn<>("Time");
     timeColumn.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().getTime()));
     timeColumn.setCellFactory(column -> new TableCell<>() {
