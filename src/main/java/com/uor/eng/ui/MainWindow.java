@@ -15,6 +15,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -90,11 +92,47 @@ public class MainWindow {
 
   private TableView<Log> createLogsTable() {
     TableView<Log> table = new TableView<>();
-    table.getColumns().addAll(
-        createColumn("Time", log -> log.getTime().toString()),
-        createColumn("Status", Log::getStatus),
-        createColumn("Response Time (ms)", log -> log.getResponseTime().toString())
-    );
+
+    // Time column
+    TableColumn<Log, LocalDateTime> timeColumn = new TableColumn<>("Time");
+    timeColumn.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().getTime()));
+    timeColumn.setCellFactory(column -> new TableCell<>() {
+      @Override
+      protected void updateItem(LocalDateTime item, boolean empty) {
+        super.updateItem(item, empty);
+        if (item == null || empty) {
+          setText(null);
+        } else {
+          setText(item.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        }
+      }
+    });
+
+    // Host column - show host name instead of ID
+    TableColumn<Log, String> hostColumn = new TableColumn<>("Host");
+    hostColumn.setCellValueFactory(data -> {
+      Host host = databaseService.getUserHosts(currentUser.getId()).stream()
+          .filter(h -> h.getId().equals(data.getValue().getHostId()))
+          .findFirst()
+          .orElse(null);
+      return new SimpleObjectProperty<>(host != null ? host.getName() : "Unknown");
+    });
+
+    // Status columns
+    TableColumn<Log, String> oldStatusColumn = new TableColumn<>("Old Status");
+    oldStatusColumn.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().getOldStatus()));
+
+    TableColumn<Log, String> statusColumn = new TableColumn<>("Status");
+    statusColumn.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().getStatus()));
+
+    // Response time column
+    TableColumn<Log, String> responseTimeColumn = new TableColumn<>("Response Time");
+    responseTimeColumn.setCellValueFactory(data -> {
+      Double responseTime = data.getValue().getResponseTime();
+      return new SimpleObjectProperty<>(responseTime != null ? responseTime + " ms" : "N/A");
+    });
+
+    table.getColumns().addAll(timeColumn, hostColumn, oldStatusColumn, statusColumn, responseTimeColumn);
     return table;
   }
 
@@ -112,6 +150,12 @@ public class MainWindow {
   private void refreshData() {
     List<Host> hosts = databaseService.getUserHosts(currentUser.getId());
     hostsTable.getItems().setAll(hosts);
+
+    hosts.forEach(host -> {
+      monitoringService.startMonitoring(host);
+      List<Log> hostLogs = databaseService.getHostLogs(host.getId(), 100);
+      logsTable.getItems().addAll(hostLogs);
+    });
   }
 
   private void startPeriodicRefresh() {

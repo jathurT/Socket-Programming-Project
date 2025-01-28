@@ -9,7 +9,7 @@ CREATE TABLE users (
 CREATE TABLE hosts (
                        id SERIAL PRIMARY KEY,
                        name VARCHAR(100) NOT NULL,
-                       host VARCHAR(255) NOT NULL,
+                       hostname VARCHAR(255) NOT NULL,
                        type VARCHAR(10) NOT NULL,
                        user_id INTEGER REFERENCES users(id),
                        status VARCHAR(20),

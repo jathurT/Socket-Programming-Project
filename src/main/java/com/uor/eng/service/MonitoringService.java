@@ -12,6 +12,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +29,12 @@ public class MonitoringService {
     this.executorService = Executors.newFixedThreadPool(10);
   }
 
+  private final Set<Long> monitoredHostIds = ConcurrentHashMap.newKeySet();
+
   public void startMonitoring(Host host) {
+    if (!monitoredHostIds.add(host.getId())) {
+      return; // Host is already being monitored
+    }
     executorService.submit(() -> {
       while (!Thread.currentThread().isInterrupted()) {
         checkHost(host);
@@ -38,16 +45,19 @@ public class MonitoringService {
           break;
         }
       }
+      monitoredHostIds.remove(host.getId()); // Clean up on thread exit
     });
   }
 
   private void checkHost(Host host) {
     try {
       String oldStatus = host.getStatus();
+      Double responseTime = null;
+
       if (host.getType() == HostType.ICMP) {
-        checkICMP(host);
+        responseTime = checkICMP(host);
       } else if (host.getType() == HostType.HTTPS) {
-        checkHTTPS(host);
+        responseTime = checkHTTPS(host);
       }
 
       Log log = new Log();
@@ -55,6 +65,7 @@ public class MonitoringService {
       log.setTime(LocalDateTime.now());
       log.setStatus(host.getStatus());
       log.setOldStatus(oldStatus);
+      log.setResponseTime(responseTime);
 
       databaseService.addLog(log);
     } catch (Exception e) {
@@ -62,16 +73,17 @@ public class MonitoringService {
     }
   }
 
-  private void checkICMP(Host host) throws IOException {
+  private Double checkICMP(Host host) throws IOException {
     InetAddress address = InetAddress.getByName(host.getHostname());
     long startTime = System.currentTimeMillis();
     boolean reachable = address.isReachable(TIMEOUT);
     long responseTime = System.currentTimeMillis() - startTime;
 
     host.setStatus(reachable ? "ONLINE" : "OFFLINE");
+    return (double) responseTime;
   }
 
-  private void checkHTTPS(Host host) throws IOException {
+  private Double checkHTTPS(Host host) throws IOException {
     RequestConfig config = RequestConfig.custom()
         .setConnectTimeout(TIMEOUT)
         .setSocketTimeout(TIMEOUT)
@@ -87,6 +99,7 @@ public class MonitoringService {
       long responseTime = System.currentTimeMillis() - startTime;
 
       host.setStatus(statusCode == 200 ? "ONLINE" : "OFFLINE");
+      return (double) responseTime;
     }
   }
 
