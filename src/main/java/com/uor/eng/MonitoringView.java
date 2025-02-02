@@ -1,80 +1,154 @@
 package com.uor.eng;
 
-import javafx.scene.chart.LineChart;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.stage.Stage;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MonitoringView {
-  private final MetricLabels metricLabels;
-  private final XYChart.Series<Number, Number> latencySeries;
-  private final XYChart.Series<Number, Number> throughputSeries;
-  private final XYChart.Series<Number, Number> qualitySeries;
-  private final VBox container;
+  private final MonitoringController controller;
+  private final GridPane sitesGrid;
+  private final TextField siteInput;
+  private final Map<String, MonitoringSite> activeSites;
+  private int currentRow = 0;
+  private int currentCol = 0;
+  private static final int MAX_COLUMNS = 2;
+  private final ScrollPane scrollPane;
 
-  public MonitoringView(String siteAddress) {
-    this.metricLabels = new MetricLabels();
-    this.latencySeries = new XYChart.Series<>();
-    this.throughputSeries = new XYChart.Series<>();
-    this.qualitySeries = new XYChart.Series<>();
-    this.container = createLayout(siteAddress);
+  public MonitoringView(MonitoringController controller) {
+    this.controller = controller;
+    this.sitesGrid = new GridPane();
+    this.siteInput = new TextField();
+    this.activeSites = new HashMap<>();
+
+    // Configure GridPane
+    sitesGrid.setHgap(10);
+    sitesGrid.setVgap(10);
+    sitesGrid.setPadding(new Insets(10));
+
+    // Configure ScrollPane
+    this.scrollPane = new ScrollPane(sitesGrid);
+    scrollPane.setFitToWidth(true);
+    scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+    scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
   }
 
-  private VBox createLayout(String siteAddress) {
-    GridPane metricsGrid = createMetricsGrid();
-    LineChart<Number, Number> chart = createChart();
-    return new VBox(10, metricsGrid, chart);
+  public void initialize(Stage primaryStage) {
+    VBox root = createMainLayout();
+    Scene scene = new Scene(root, 1200, 800); // Increased default window size
+
+    primaryStage.setTitle("Network Monitoring Tool");
+    primaryStage.setScene(scene);
+    primaryStage.show();
+
+    primaryStage.setOnCloseRequest(event -> controller.stopAllMonitoring());
   }
 
-  private GridPane createMetricsGrid() {
-    GridPane grid = new GridPane();
-    grid.setVgap(5);
-    grid.setHgap(10);
-    grid.add(metricLabels.latencyLabel, 0, 0);
-    grid.add(metricLabels.packetLossLabel, 1, 0);
-    grid.add(metricLabels.throughputLabel, 0, 1);
-    grid.add(metricLabels.jitterLabel, 1, 1);
-    grid.add(metricLabels.qualityLabel, 0, 2);
-    grid.add(metricLabels.errorRateLabel, 1, 2);
-    grid.add(metricLabels.downloadSpeedLabel, 0, 3);
-    grid.add(metricLabels.uploadSpeedLabel, 1, 3);
-    grid.add(metricLabels.connectionStatusLabel, 0, 4, 2, 1);
-    return grid;
+  private VBox createMainLayout() {
+    VBox controlBox = createControlBox();
+
+    // Make monitoring views take up equal space
+    ColumnConstraints column = new ColumnConstraints();
+    column.setPercentWidth(50); // Each column takes 50% of the width
+    sitesGrid.getColumnConstraints().addAll(column, column);
+
+    VBox root = new VBox(10, controlBox, scrollPane);
+    root.setPadding(new Insets(10));
+    VBox.setVgrow(scrollPane, Priority.ALWAYS);
+    return root;
   }
 
-  private LineChart<Number, Number> createChart() {
-    NumberAxis xAxis = new NumberAxis();
-    NumberAxis yAxis = new NumberAxis();
-    LineChart<Number, Number> chart = new LineChart<>(xAxis, yAxis);
-    chart.getData().addAll(latencySeries, throughputSeries, qualitySeries);
-    return chart;
+  private VBox createControlBox() {
+    siteInput.setPromptText("Enter website or IP address (comma-separated for multiple sites)");
+    siteInput.setPrefWidth(400);
+
+    Button addButton = new Button("Add Site(s)");
+    addButton.setOnAction(e -> addNewSites());
+
+    siteInput.setOnAction(e -> addNewSites());
+
+    Button stopAllButton = new Button("Stop All Monitoring");
+    stopAllButton.setOnAction(e -> {
+      controller.stopAllMonitoring();
+      sitesGrid.getChildren().clear();
+      activeSites.clear();
+      currentRow = 0;
+      currentCol = 0;
+    });
+
+    HBox controls = new HBox(10, siteInput, addButton, stopAllButton);
+    controls.setAlignment(Pos.CENTER);
+
+    VBox controlBox = new VBox(10, controls);
+    controlBox.setAlignment(Pos.CENTER);
+    return controlBox;
   }
 
-  public void updateMetrics(NetworkMetrics metrics, int sampleCount) {
-    updateLabels(metrics);
-    updateCharts(metrics, sampleCount);
+  private void addNewSites() {
+    String[] sites = siteInput.getText().trim().split(",");
+    for (String site : sites) {
+      String siteAddress = site.trim();
+      if (!siteAddress.isEmpty() && !activeSites.containsKey(siteAddress)) {
+        addSite(siteAddress);
+      }
+    }
+    siteInput.clear();
   }
 
-  private void updateLabels(NetworkMetrics metrics) {
-    metricLabels.updateFromMetrics(metrics);
+  private void addSite(String siteAddress) {
+    controller.restart();
+    MonitoringSite site = new MonitoringSite(siteAddress, () -> stopSite(siteAddress));
+
+    // Configure the site view for grid layout
+    site.getView().setPrefWidth(550);
+    site.getView().setMaxWidth(550);
+
+    // Add to grid
+    sitesGrid.add(site.getView(), currentCol, currentRow);
+
+    // Update grid position
+    currentCol++;
+    if (currentCol >= MAX_COLUMNS) {
+      currentCol = 0;
+      currentRow++;
+    }
+
+    activeSites.put(siteAddress, site);
+    controller.startMonitoring(siteAddress, site);
   }
 
-  private void updateCharts(NetworkMetrics metrics, int sampleCount) {
-    latencySeries.getData().add(new XYChart.Data<>(sampleCount, metrics.getLatency()));
-    throughputSeries.getData().add(new XYChart.Data<>(sampleCount, metrics.getThroughput() / 1024));
-    qualitySeries.getData().add(new XYChart.Data<>(sampleCount, metrics.getConnectionQuality()));
+  private void stopSite(String siteAddress) {
+    MonitoringSite site = activeSites.remove(siteAddress);
+    if (site != null) {
+      controller.stopMonitoring(siteAddress);
+      sitesGrid.getChildren().remove(site.getView());
+
+      // Reorganize remaining sites
+      reorganizeGrid();
+    }
   }
 
-  public void showError(String message) {
-    metricLabels.latencyLabel.setText("Error: " + message);
-  }
+  private void reorganizeGrid() {
+    // Store all remaining sites
+    var remainingSites = new HashMap<>(activeSites);
 
-  public void showStopped() {
-    metricLabels.setAllStopped();
-  }
+    // Clear the grid and reset counters
+    sitesGrid.getChildren().clear();
+    currentRow = 0;
+    currentCol = 0;
 
-  public VBox getContainer() {
-    return container;
+    // Re-add all remaining sites
+    remainingSites.forEach((address, site) -> {
+      sitesGrid.add(site.getView(), currentCol, currentRow);
+      currentCol++;
+      if (currentCol >= MAX_COLUMNS) {
+        currentCol = 0;
+        currentRow++;
+      }
+    });
   }
 }
