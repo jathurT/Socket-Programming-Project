@@ -4,7 +4,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.net.ssl.HttpsURLConnection;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.Instant;
@@ -16,6 +18,7 @@ public class NetworkClient {
   private final long thresholdLatency;
   private final Queue<Long> latencyHistory = new LinkedList<>();
   private final int HISTORY_SIZE = 10;
+  private final int BUFFER_SIZE = 8192;
 
   private int totalRequests = 0;
   private int successfulRequests = 0;
@@ -23,6 +26,8 @@ public class NetworkClient {
   private long totalSentData = 0;
   private long totalReceivedData = 0;
   private long lastMeasurementTime = Instant.now().toEpochMilli();
+  private double downloadSpeed = 0.0;
+  private double uploadSpeed = 0.0;
   private double currentThroughput = 0.0;
 
   public NetworkClient(String serverAddress, long thresholdLatency) {
@@ -48,34 +53,54 @@ public class NetworkClient {
       connection.setConnectTimeout(5000);
       connection.setReadTimeout(5000);
 
+      // Start measuring download
+      connection.connect();
       int responseCode = connection.getResponseCode();
+      long receivedData = 0;
+
+      if (responseCode == HttpURLConnection.HTTP_OK) {
+        // Measure download speed
+        try (InputStream in = connection.getInputStream()) {
+          byte[] buffer = new byte[BUFFER_SIZE];
+          int bytesRead;
+          long downloadStartTime = System.currentTimeMillis();
+
+          while ((bytesRead = in.read(buffer)) != -1) {
+            receivedData += bytesRead;
+          }
+
+          long downloadTime = System.currentTimeMillis() - downloadStartTime;
+          if (downloadTime > 0) {
+            downloadSpeed = (receivedData * 1000.0) / (downloadTime * 1024 * 1024); // Convert to Mbps
+          }
+        }
+      }
+
+      // Simulate and measure upload speed (since we can't actually upload in this context)
+      long uploadStartTime = System.currentTimeMillis();
+      byte[] testData = new byte[BUFFER_SIZE * 100]; // 800KB test data
+      if (responseCode == HttpURLConnection.HTTP_OK) {
+        // Simulate upload by measuring how fast we can write to a ByteArrayOutputStream
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+          out.write(testData);
+        }
+        long uploadTime = System.currentTimeMillis() - uploadStartTime;
+        if (uploadTime > 0) {
+          uploadSpeed = (testData.length * 1000.0) / (uploadTime * 1024 * 1024); // Convert to Mbps
+        }
+      }
+
       long currentTime = Instant.now().toEpochMilli();
-
-      // Calculate data transfer
-      long sentData = connection.getRequestProperty("Content-Length") != null ?
-          Integer.parseInt(connection.getRequestProperty("Content-Length")) : 0;
-      long receivedData = Math.max(connection.getContentLength(), 0);
-
-      totalSentData += sentData;
-      totalReceivedData += receivedData;
-
-      // Calculate throughput (bytes per second)
-      long timeDiff = currentTime - lastMeasurementTime;
-      if (timeDiff > 0) {
-        currentThroughput = ((double) (sentData + receivedData) / timeDiff) * 1000; // Convert to bytes/second
-      }
-      lastMeasurementTime = currentTime;
-
-      // Calculate latency
       long latency = (System.nanoTime() - startTime) / 1000000; // Convert to milliseconds
-      latencyHistory.offer(latency);
-      if (latencyHistory.size() > HISTORY_SIZE) {
-        latencyHistory.poll();
-      }
 
+      // Update metrics
       if (responseCode == HttpURLConnection.HTTP_OK) {
         successfulRequests++;
         metrics.setLatency(latency);
+        metrics.setDownloadSpeed(downloadSpeed);
+        metrics.setUploadSpeed(uploadSpeed);
+        currentThroughput = ((downloadSpeed + uploadSpeed) * 1024 * 1024) / 8.0; // Convert Mbps to bytes/sec
+        metrics.setThroughput(currentThroughput);
       } else {
         packetLossCount++;
         metrics.setLatency(-1);
@@ -83,8 +108,12 @@ public class NetworkClient {
       totalRequests++;
 
       // Set all metrics
+      latencyHistory.offer(latency);
+      if (latencyHistory.size() > HISTORY_SIZE) {
+        latencyHistory.poll();
+      }
+
       metrics.setPacketLoss(getPacketLossPercentage());
-      metrics.setThroughput(currentThroughput);
       metrics.setBandwidthUsage(getBandwidthUsage());
       metrics.setJitter(calculateJitter());
       metrics.setErrorRate(getErrorRate());
@@ -161,8 +190,14 @@ public class NetworkClient {
     private boolean successful;
     @Getter
     private String errorMessage;
+    @Getter
+    private double downloadSpeed;
+    @Getter
+    private double uploadSpeed;
 
-    public double getLatency() { return (double) latency; }  // Convert to double
+    public double getLatency() {
+      return (double) latency;
+    }  // Convert to double
 
   }
 }
