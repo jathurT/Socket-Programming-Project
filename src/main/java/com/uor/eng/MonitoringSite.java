@@ -1,67 +1,71 @@
 package com.uor.eng;
 
 import javafx.application.Platform;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.layout.VBox;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class MonitoringSite {
-  private final String address;
+  @Getter
+  private final String siteAddress;
+
+  @Getter @Setter
+  private Runnable monitoringTask;
+
+  @Getter
+  private boolean running = true;
+  private final VBox rootLayout;
+  private final Button stopButton;
   private final MetricsDisplay metricsDisplay;
   private final ChartDisplay chartDisplay;
-  @Getter
-  private final VBox view;
-  @Setter
-  @Getter
-  private Runnable monitoringTask;
-  private final AtomicBoolean isRunning;
-  private final Runnable onStopCallback;
 
-  public MonitoringSite(String address, Runnable onStopCallback) {
-    this.address = address;
-    this.onStopCallback = onStopCallback;
+  // Add callbacks for metrics updates and site removal
+  private Consumer<NetworkMetrics> onMetricsUpdated;
+  @Setter
+  private Runnable onSiteRemoved;
+
+  public MonitoringSite(String siteAddress) {
+    this.siteAddress = siteAddress;
+    this.stopButton = new Button("Stop");
+    stopButton.setOnAction(e -> stop());
     this.metricsDisplay = new MetricsDisplay();
     this.chartDisplay = new ChartDisplay();
-    this.view = createView();
-    this.isRunning = new AtomicBoolean(true);
+    chartDisplay.getChart().setTitle("Metrics for " + siteAddress);
+
+    this.rootLayout = new VBox(10, stopButton, metricsDisplay.getGrid(), chartDisplay.getChart());
   }
 
-  private VBox createView() {
-    HBox controls = createControls();
-    return new VBox(10, controls, metricsDisplay.getGrid(), chartDisplay.getChart());
-  }
-
-  private HBox createControls() {
-    Label siteLabel = new Label("Site: " + address);
-    siteLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
-    Button stopButton = new Button("Stop");
-    stopButton.setOnAction(e -> {
-      stop();
-      if (onStopCallback != null) {
-        onStopCallback.run();
-      }
-    });
-
-    return new HBox(10, siteLabel, stopButton);
+  public void setOnMetricsUpdated(Consumer<NetworkMetrics> callback) {
+    this.onMetricsUpdated = callback;
   }
 
   public void updateMetrics(NetworkMetrics metrics) {
     Platform.runLater(() -> {
+      if (!running) return;
+
       metricsDisplay.update(metrics);
       chartDisplay.update(metrics);
+      if (onMetricsUpdated != null) {
+        onMetricsUpdated.accept(metrics);
+      }
     });
   }
 
   public void stop() {
-    isRunning.set(false);
+    running = false;
+    stopButton.setDisable(true);
+
+    // Notify that this site should be removed
+    if (onSiteRemoved != null) {
+      Platform.runLater(() -> onSiteRemoved.run());
+    }
   }
 
-  public boolean isRunning() {
-    return isRunning.get();
+  public Node getView() {
+    return rootLayout;
   }
-
 }
