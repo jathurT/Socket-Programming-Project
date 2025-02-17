@@ -16,6 +16,7 @@ public class MonitoringSite {
   @Getter @Setter
   private Runnable monitoringTask;
 
+  @Getter
   private boolean running = true;
   private final VBox rootLayout;
   private final Button stopButton;
@@ -24,6 +25,7 @@ public class MonitoringSite {
 
   // Add callbacks for metrics updates and site removal
   private Consumer<NetworkMetrics> onMetricsUpdated;
+  @Setter
   private Runnable onSiteRemoved;
 
   public MonitoringSite(String siteAddress) {
@@ -41,10 +43,6 @@ public class MonitoringSite {
     this.onMetricsUpdated = callback;
   }
 
-  public void setOnSiteRemoved(Runnable callback) {
-    this.onSiteRemoved = callback;
-  }
-
   public void updateMetrics(NetworkMetrics metrics) {
     Platform.runLater(() -> {
       if (!running) return;
@@ -55,10 +53,6 @@ public class MonitoringSite {
         onMetricsUpdated.accept(metrics);
       }
     });
-  }
-
-  public boolean isRunning() {
-    return running;
   }
 
   public void stop() {
