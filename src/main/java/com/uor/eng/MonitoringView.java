@@ -3,9 +3,12 @@ package com.uor.eng;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,9 +17,11 @@ public class MonitoringView {
   private final GridPane sitesGrid;
   private final TextField siteInput;
   private final Map<String, MonitoringSite> activeSites;
+
   private int currentRow = 0;
   private int currentCol = 0;
   private static final int MAX_COLUMNS = 2;
+
   private final ScrollPane scrollPane;
 
   public MonitoringView(MonitoringController controller) {
@@ -39,21 +44,21 @@ public class MonitoringView {
 
   public void initialize(Stage primaryStage) {
     VBox root = createMainLayout();
-    Scene scene = new Scene(root, 1200, 800); // Increased default window size
-
+    Scene scene = new Scene(root, 1200, 800);
     primaryStage.setTitle("Network Monitoring Tool");
     primaryStage.setScene(scene);
     primaryStage.show();
 
+    // Stop all monitoring when window closes
     primaryStage.setOnCloseRequest(event -> controller.stopAllMonitoring());
   }
 
   private VBox createMainLayout() {
     VBox controlBox = createControlBox();
 
-    // Make monitoring views take up equal space
+    // Make 2 columns, each 50% width
     ColumnConstraints column = new ColumnConstraints();
-    column.setPercentWidth(50); // Each column takes 50% of the width
+    column.setPercentWidth(50);
     sitesGrid.getColumnConstraints().addAll(column, column);
 
     VBox root = new VBox(10, controlBox, scrollPane);
@@ -68,7 +73,7 @@ public class MonitoringView {
 
     Button addButton = new Button("Add Site(s)");
     addButton.setOnAction(e -> addNewSites());
-
+    // Pressing Enter also adds
     siteInput.setOnAction(e -> addNewSites());
 
     Button stopAllButton = new Button("Stop All Monitoring");
@@ -100,48 +105,45 @@ public class MonitoringView {
   }
 
   private void addSite(String siteAddress) {
+    // If needed, re-start the executor if it was shut down
     controller.restart();
-    MonitoringSite site = new MonitoringSite(siteAddress, () -> stopSite(siteAddress));
 
-    // Configure the site view for grid layout
-    site.getView().setPrefWidth(550);
-    site.getView().setMaxWidth(550);
+    // Create a new MonitoringSite
+    MonitoringSite site = new MonitoringSite(siteAddress);
 
-    // Add to grid
+    // Set up removal callback
+    site.setOnSiteRemoved(() -> {
+      controller.stopMonitoring(siteAddress);
+      activeSites.remove(siteAddress);
+      sitesGrid.getChildren().remove(site.getView());
+      reorganizeGrid();
+    });
+
+    // Optional: set site UI size
+    ((Region) site.getView()).setPrefWidth(550);
+    ((Region) site.getView()).setMaxWidth(550);
+
+    // Add the site's UI to the grid
     sitesGrid.add(site.getView(), currentCol, currentRow);
 
-    // Update grid position
     currentCol++;
     if (currentCol >= MAX_COLUMNS) {
       currentCol = 0;
       currentRow++;
     }
 
+    // Keep track
     activeSites.put(siteAddress, site);
     controller.startMonitoring(siteAddress, site);
   }
 
-  private void stopSite(String siteAddress) {
-    MonitoringSite site = activeSites.remove(siteAddress);
-    if (site != null) {
-      controller.stopMonitoring(siteAddress);
-      sitesGrid.getChildren().remove(site.getView());
-
-      // Reorganize remaining sites
-      reorganizeGrid();
-    }
-  }
-
   private void reorganizeGrid() {
-    // Store all remaining sites
     var remainingSites = new HashMap<>(activeSites);
 
-    // Clear the grid and reset counters
     sitesGrid.getChildren().clear();
     currentRow = 0;
     currentCol = 0;
 
-    // Re-add all remaining sites
     remainingSites.forEach((address, site) -> {
       sitesGrid.add(site.getView(), currentCol, currentRow);
       currentCol++;

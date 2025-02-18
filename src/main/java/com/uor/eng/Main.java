@@ -3,6 +3,9 @@ package com.uor.eng;
 import javafx.application.Application;
 import javafx.stage.Stage;
 
+/**
+ * The main JavaFX Application entry point.
+ */
 public class Main extends Application {
   private final MonitoringController controller;
 
