@@ -1,72 +1,61 @@
 package com.uor.eng.filetrasnfer;
 
-import javafx.beans.property.*;
+import javax.swing.*;
 
 public class ClientData {
-    private final StringProperty clientIP;
-    private final StringProperty fileName;
-    private final StringProperty status;
-    private final LongProperty ping;
-    private final LongProperty latency;
-    private final DoubleProperty throughput;
-    private final DoubleProperty packetLoss;
-    private final DoubleProperty jitter;
-    private final DoubleProperty bandwidthUtilization;
-    private final DoubleProperty uploadSpeed;
+    private String clientIP;
+    private String fileName;
+    private String status;
+    private long ping;
+    private long latency;
+    private double throughput;
+    private double packetLoss;
+    private double jitter;
+    private double bandwidthUtilization;
+    private double uploadSpeed;
 
     public ClientData(String clientIP, String fileName, String status, long ping, long latency, double throughput,
                       double packetLoss, double jitter, double bandwidthUtilization, double uploadSpeed) {
-        this.clientIP = new SimpleStringProperty(clientIP);
-        this.fileName = new SimpleStringProperty(fileName);
-        this.status = new SimpleStringProperty(status);
-        this.ping = new SimpleLongProperty(ping);
-        this.latency = new SimpleLongProperty(latency);
-        this.throughput = new SimpleDoubleProperty(throughput);
-        this.packetLoss = new SimpleDoubleProperty(packetLoss);
-        this.jitter = new SimpleDoubleProperty(jitter);
-        this.bandwidthUtilization = new SimpleDoubleProperty(bandwidthUtilization);
-        this.uploadSpeed = new SimpleDoubleProperty(uploadSpeed);
+        this.clientIP = clientIP;
+        this.fileName = fileName;
+        this.status = status;
+        this.ping = ping;
+        this.latency = latency;
+        this.throughput = throughput;
+        this.packetLoss = packetLoss;
+        this.jitter = jitter;
+        this.bandwidthUtilization = bandwidthUtilization;
+        this.uploadSpeed = uploadSpeed;
     }
 
     // Getters and Setters
-    public String getClientIP() { return clientIP.get(); }
-    public void setClientIP(String value) { clientIP.set(value); }
-    public StringProperty clientIPProperty() { return clientIP; }
+    public String getClientIP() { return clientIP; }
+    public void setClientIP(String clientIP) { this.clientIP = clientIP; }
 
-    public String getFileName() { return fileName.get(); }
-    public void setFileName(String value) { fileName.set(value); }
-    public StringProperty fileNameProperty() { return fileName; }
+    public String getFileName() { return fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
 
-    public String getStatus() { return status.get(); }
-    public void setStatus(String value) { status.set(value); }
-    public StringProperty statusProperty() { return status; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public long getPing() { return ping.get(); }
-    public void setPing(long value) { ping.set(value); }
-    public LongProperty pingProperty() { return ping; }
+    public long getPing() { return ping; }
+    public void setPing(long ping) { this.ping = ping; }
 
-    public long getLatency() { return latency.get(); }
-    public void setLatency(long value) { latency.set(value); }
-    public LongProperty latencyProperty() { return latency; }
+    public long getLatency() { return latency; }
+    public void setLatency(long latency) { this.latency = latency; }
 
-    public double getThroughput() { return throughput.get(); }
-    public void setThroughput(double value) { throughput.set(value); }
-    public DoubleProperty throughputProperty() { return throughput; }
+    public double getThroughput() { return throughput; }
+    public void setThroughput(double throughput) { this.throughput = throughput; }
 
-    public double getPacketLoss() { return packetLoss.get(); }
-    public void setPacketLoss(double value) { packetLoss.set(value); }
-    public DoubleProperty packetLossProperty() { return packetLoss; }
+    public double getPacketLoss() { return packetLoss; }
+    public void setPacketLoss(double packetLoss) { this.packetLoss = packetLoss; }
 
-    public double getJitter() { return jitter.get(); }
-    public void setJitter(double value) { jitter.set(value); }
-    public DoubleProperty jitterProperty() { return jitter; }
+    public double getJitter() { return jitter; }
+    public void setJitter(double jitter) { this.jitter = jitter; }
 
-    public double getBandwidthUtilization() { return bandwidthUtilization.get(); }
-    public void setBandwidthUtilization(double value) { bandwidthUtilization.set(value); }
-    public DoubleProperty bandwidthUtilizationProperty() { return bandwidthUtilization; }
+    public double getBandwidthUtilization() { return bandwidthUtilization; }
+    public void setBandwidthUtilization(double bandwidthUtilization) { this.bandwidthUtilization = bandwidthUtilization; }
 
-    public double getUploadSpeed() { return uploadSpeed.get(); }
-    public void setUploadSpeed(double value) { uploadSpeed.set(value); }
-    public DoubleProperty uploadSpeedProperty() { return uploadSpeed; }
+    public double getUploadSpeed() { return uploadSpeed; }
+    public void setUploadSpeed(double uploadSpeed) { this.uploadSpeed = uploadSpeed; }
 }
-

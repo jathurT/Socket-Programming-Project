@@ -8,7 +8,7 @@ public class FileTransferClient {
     private static final String SAVE_DIR = "C:/ReceivedFiles";  // Folder where files are saved
 
     public static void main(String[] args) {
-        String serverIP = "127.0.0.1";  // Change this to match the server's IP
+        String serverIP = "192.168.232.72";  // Change this to match the server's IP
 
         try (Socket socket = new Socket(serverIP, PORT);
              DataInputStream dis = new DataInputStream(socket.getInputStream())) {
@@ -69,7 +69,7 @@ import java.io.*;
 import java.net.*;
 
 public class FileTransferClient {
-    private static final String SERVER_IP = "127.0.0.1"; // Change to server IP
+    private static final String SERVER_IP = "192.168.232.72"; // Change to server IP
     private static final int SERVER_PORT = 5000;
 
     public static void main(String[] args) {
