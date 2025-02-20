@@ -145,7 +145,7 @@ public class MetricsDisplay {
     String styleClass = "status-good";
 
     // Simple logic for demonstration; adjust thresholds as needed
-    if (metrics.getLatency() > 1000) {
+    if (metrics.getLatency() > 10000) {
       status = "High Latency";
       styleClass = "status-warning";
     } else if (metrics.getPacketLoss() > 5) {

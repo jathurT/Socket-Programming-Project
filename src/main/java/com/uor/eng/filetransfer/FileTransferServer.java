@@ -1,11 +1,11 @@
-package com.uor.eng.filetrasnfer;
+package com.uor.eng.filetransfer;
 
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
 public class FileTransferServer {
-    private static final int PORT = 5000;
+    private static final int PORT = 6000;
     private static List<Socket> clientSockets = new ArrayList<>();
 
     public static void main(String[] args) {
