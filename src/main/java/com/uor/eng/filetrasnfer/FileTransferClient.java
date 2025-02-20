@@ -1,6 +1,70 @@
 package com.uor.eng.filetrasnfer;
 
+import java.io.*;
+import java.net.*;
 
+public class FileTransferClient {
+    private static final int PORT = 5000;  // Server port
+    private static final String SAVE_DIR = "C:/ReceivedFiles";  // Folder where files are saved
+
+    public static void main(String[] args) {
+        String serverIP = "127.0.0.1";  // Change this to match the server's IP
+
+        try (Socket socket = new Socket(serverIP, PORT);
+             DataInputStream dis = new DataInputStream(socket.getInputStream())) {
+
+            // Read file name and size from server
+            String fileName = dis.readUTF();
+            long fileSize = dis.readLong();
+
+            // Ensure directory exists
+            File saveDirectory = new File(SAVE_DIR);
+            if (!saveDirectory.exists()) {
+                saveDirectory.mkdirs();
+            }
+
+            File receivedFile = new File(saveDirectory, fileName);
+            try (FileOutputStream fos = new FileOutputStream(receivedFile)) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                long totalBytesRead = 0;
+
+                while (totalBytesRead < fileSize && (bytesRead = dis.read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
+                }
+
+                System.out.println("File received and saved at: " + receivedFile.getAbsolutePath());
+            }
+        } catch (IOException e) {
+            System.out.println("Error receiving file: " + e.getMessage());
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 import java.io.*;
 import java.net.*;
 
@@ -36,4 +100,6 @@ public class FileTransferClient {
         }
     }
 }
+
+ */
 
