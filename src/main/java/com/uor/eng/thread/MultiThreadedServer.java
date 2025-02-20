@@ -50,9 +50,11 @@ public class MultiThreadedServer extends JFrame {
         add(startButton, BorderLayout.SOUTH);
 
         setVisible(true);
+
+        startServer();
     }
 
-    private void startServer() {
+    public void startServer() {
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(PORT)) {
                 logMessage("Server is listening on port " + PORT);
