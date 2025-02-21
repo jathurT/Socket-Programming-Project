@@ -87,7 +87,7 @@ public class MainUI {
 /*
         JPanel fileTransferPanel = new JPanel();
         fileTransferPanel.setLayout(new GridLayout(3, 1, 5, 5));
-        fileTransferPanel.setBorder(BorderFactory.createTitledBorder("File Transfer"));
+        fileTransferPanel.setBorder(BorderFactory.createTitledBorder("Device Monitoring When File Transfer"));
         fileTransferPanel.setBackground(Color.WHITE);
 
         JButton fileTransferSwingButton = new JButton("Open File Transfer UI");
