@@ -6,6 +6,7 @@ import javafx.stage.Stage;
 /**
  * The main JavaFX Application entry point.
  */
+
 public class Main extends Application {
   private final MonitoringController controller;
 
@@ -28,3 +29,5 @@ public class Main extends Application {
     launch(args);
   }
 }
+
+
