@@ -4,9 +4,6 @@ import com.uor.eng.thread.ClientUI;
 import com.uor.eng.thread.MultiThreadedServer;
 import com.uor.eng.thread.Client;
 import com.uor.eng.Main;
-import com.uor.eng.filetransfer.FileTransferSwing;
-import com.uor.eng.filetransfer.FileTransferServer;
-import com.uor.eng.filetransfer.FileTransferClient;
 
 //new part
 import com.uor.eng.filetransfervisual.FileTransferServerSingle;
